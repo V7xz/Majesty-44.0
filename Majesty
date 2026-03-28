@@ -1,41 +1,77 @@
+-- ================================================================
+-- 🔐 KEY SYSTEM + HWID CHECK (ADD ONLY - NO MODIFY)
+-- ================================================================
+
+local HttpService = game:GetService("HttpService")
+
+-- CONFIG
+local KEY = _G.KEY or "" -- ambil dari executor
+local API_URL = "https://nomographically-propatriotic-delia.ngrok-free.dev" -- ganti ke server lu
+
+-- GENERATE HWID (simple & stable)
+local function getHWID()
+    local id = ""
+    pcall(function()
+        id = game:GetService("RbxAnalyticsService"):GetClientId()
+    end)
+    return id ~= "" and id or "UNKNOWN_HWID"
+end
+
+local HWID = getHWID()
+
+-- VALIDATION FUNCTION
+local function validateKey()
+    if KEY == "" or KEY == nil then
+        warn("❌ KEY TIDAK ADA")
+        return false, "NO_KEY"
+    end
+
+    local success, response = pcall(function()
+        return HttpService:JSONDecode(
+            game:HttpGet(API_URL .. "?key=" .. KEY .. "&hwid=" .. HWID)
+        )
+    end)
+
+    if not success or not response then
+        warn("❌ GAGAL VALIDASI KEY")
+        return false, "ERROR"
+    end
+
+    if response.status == "invalid" then
+        warn("❌ KEY SALAH")
+        return false, "INVALID"
+    end
+
+    if response.status == "expired" then
+        warn("❌ KEY EXPIRED")
+        return false, "EXPIRED"
+    end
+
+    if response.status == "hwid_mismatch" then
+        warn("❌ HWID TIDAK SESUAI")
+        return false, "HWID"
+    end
+
+    if response.status == "valid" then
+        print("✅ KEY VALID | HWID TERDAFTAR")
+        return true, "VALID"
+    end
+
+    return false, "UNKNOWN"
+end
+
+-- EXECUTION GATE
+local VALID, STATUS = validateKey()
+
+if not VALID then
+    warn("⛔ SCRIPT DIHENTIKAN: " .. STATUS)
+    return -- STOP SCRIPT TANPA MENGUBAH SISTEM LAIN
+end
+
+-- ================================================================
+-- 🔐 END KEY SYSTEM
+-- ================================================================
 -- ========== MAJESTY STORE v8.3.0 ==========
--- =========================
--- 🔐 KEY SYSTEM (ADDED)
--- =========================
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
-local key = _G.KEY
-
-if not key or key == "" then
-    LocalPlayer:Kick("No key provided!")
-    return
-end
-
-local hwid = game:GetService("RbxAnalyticsService"):GetClientId()
-local API_URL = "https://nomographically-propatriotic-delia.ngrok-free.dev" -- GANTI INI
-
-local success, response = pcall(function()
-    return game:HttpGet(API_URL .. "?key=" .. key .. "&hwid=" .. hwid)
-end)
-
-if not success or not response then
-    LocalPlayer:Kick("Failed to connect to key server!")
-    return
-end
-
-local data
-pcall(function()
-    data = game:GetService("HttpService"):JSONDecode(response)
-end)
-
-if not data or not data.valid then
-    LocalPlayer:Kick("Invalid key / Device not allowed!")
-    return
-end
-
-print("🔑 Key accepted!")
-
 local Players          = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local Workspace        = game:GetService("Workspace")
